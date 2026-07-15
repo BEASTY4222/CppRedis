@@ -1,12 +1,13 @@
 //std libs
 #include <iostream>
 #include <cstdlib>
+#include <cstring>  
 
-// network libs
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
+// network libs for linux specificly
+#include <sys/socket.h> // core socket funcs
+#include <netinet/in.h> // structures for internet addreses
+#include <arpa/inet.h> // IP address conversion ahelpers
+#include <unistd.h> // general POSIX funcs
 
 
 // my files
@@ -17,8 +18,26 @@ void die(const char* msg) {
     exit(1);
 }
 
+
+static void do_something(int connfd){
+    char rbuf[64] = {};
+    ssize_t n = read(connfd, rbuf, sizeof(rbuf) - 1);
+    if(n < 0){
+        die("read() error");
+        return;
+    }
+
+    std::cout << "client says: " << rbuf << std::endl;
+
+    char wbuf[] = "world";
+    write(connfd, wbuf, strlen(wbuf));
+}
+
 int main(){
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    // creating the socket
+    // fd = handle you will use later
+    int fd = socket(AF_INET, SOCK_STREAM, 0); 
+    
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(1234);
@@ -27,8 +46,23 @@ int main(){
     int rv = bind(fd, (const struct sockaddr *)&addr, sizeof(addr));
     if(rv) {die("bind()");}
 
+    // listen
+    rv = listen(fd, SOMAXCONN);
+    if(rv) {die("listen()");}
 
-    std::cout << "Hello, world" << std::endl;
+    while(true){
+        //accept
+        struct sockaddr_in client_addr = {};
+        socklen_t addrlen = sizeof(client_addr);// client len
+
+        int connfd = accept(fd,(struct sockaddr *)&client_addr, &addrlen);
+        if(connfd < 0){
+            continue;
+        }
+
+        do_something(connfd);
+        close(connfd);
+    }
 
     return 0;
 }
