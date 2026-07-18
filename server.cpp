@@ -1,42 +1,13 @@
-//std libs
-#include <iostream>
-#include <cstdlib>
-#include <cstring>  
-
-// network libs for linux specificly
-#include <sys/socket.h> // core socket funcs
-#include <netinet/in.h> // structures for internet addreses
-#include <arpa/inet.h> // IP address conversion ahelpers
-#include <unistd.h> // general POSIX funcs
-
-
-// my files
-#include "Sockaddr.h"
-
-void die(const char* msg) {
-    std::cerr << "Error: " << msg << " (" << strerror(errno) << ")" << std::endl;    exit(1);
-}
-
-
-static void do_something(int connfd){
-    char readbuf[64] = {};
-    ssize_t n = read(connfd, readbuf, sizeof(readbuf) - 1);
-    if(n < 0){
-        die("read() error");
-        return;
-    }
-
-    std::cout << "client says: " << readbuf << std::endl;
-
-    char writebuf[] = "world";
-    write(connfd, writebuf, strlen(writebuf));
-}
+#include "utilities.h"
 
 int main(){
     // creating the socket
     // fd = handle you will use later
     int fd = socket(AF_INET, SOCK_STREAM, 0); 
     if(fd < 0)die("fd");
+
+    int val = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
 
     mySockaddr_in addr = {};
     addr.sin_family = AF_INET;
@@ -60,7 +31,12 @@ int main(){
             continue;
         }
 
-        do_something(connfd);
+        while(true){
+            int32_t err = one_request(connfd); // in utilities.h
+            if(err < 0) break;
+        }
+
+        //do_something(connfd);
         close(connfd);
     }
 

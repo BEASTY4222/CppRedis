@@ -1,22 +1,4 @@
-//std libs
-#include <iostream>
-#include <cstdlib>
-#include <cstring>  
-
-// network libs for linux specificly
-#include <sys/socket.h> // core socket funcs
-#include <netinet/in.h> // structures for internet addreses
-#include <arpa/inet.h> // IP address conversion ahelpers
-#include <unistd.h> // general POSIX funcs
-
-
-// my files
-#include "Sockaddr.h"
-
-void die(const char* msg) {
-    std::cerr << "Error: " << msg << std::endl;
-    exit(1);
-}
+#include "utilities.h"
 
 int main() {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -36,7 +18,17 @@ int main() {
     ssize_t n = read(fd, rbuf ,sizeof(rbuf) - 1);
     if(n < 0) die("read");
 
+    int32_t err = query(fd, "hello1");
+    if(err) goto L_DONE;
+
+    err = query(fd, "hello2");
+    if (err) {
+        goto L_DONE;
+    }
+
     std::cout << "server says : " << rbuf << std::endl;
 
+L_DONE:
+    close(fd);
     return 0;
 }
