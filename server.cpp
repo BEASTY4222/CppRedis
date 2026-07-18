@@ -14,31 +14,31 @@
 #include "Sockaddr.h"
 
 void die(const char* msg) {
-    std::cerr << "Error: " << msg << std::endl;
-    exit(1);
+    std::cerr << "Error: " << msg << " (" << strerror(errno) << ")" << std::endl;    exit(1);
 }
 
 
 static void do_something(int connfd){
-    char rbuf[64] = {};
-    ssize_t n = read(connfd, rbuf, sizeof(rbuf) - 1);
+    char readbuf[64] = {};
+    ssize_t n = read(connfd, readbuf, sizeof(readbuf) - 1);
     if(n < 0){
         die("read() error");
         return;
     }
 
-    std::cout << "client says: " << rbuf << std::endl;
+    std::cout << "client says: " << readbuf << std::endl;
 
-    char wbuf[] = "world";
-    write(connfd, wbuf, strlen(wbuf));
+    char writebuf[] = "world";
+    write(connfd, writebuf, strlen(writebuf));
 }
 
 int main(){
     // creating the socket
     // fd = handle you will use later
     int fd = socket(AF_INET, SOCK_STREAM, 0); 
-    
-    struct sockaddr_in addr = {};
+    if(fd < 0)die("fd");
+
+    mySockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(1234);
     addr.sin_addr.s_addr = htonl(0);
@@ -52,7 +52,7 @@ int main(){
 
     while(true){
         //accept
-        struct sockaddr_in client_addr = {};
+        struct mySockaddr_in client_addr = {};
         socklen_t addrlen = sizeof(client_addr);// client len
 
         int connfd = accept(fd,(struct sockaddr *)&client_addr, &addrlen);
